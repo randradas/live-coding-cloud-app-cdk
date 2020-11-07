@@ -8,35 +8,47 @@ coding session setp by step to reach the finnal result.
 The result of this live coding session can be find at the '*/cloud-app-cdk/*'
 directory.
 
+# Thank you to...
+It is inspired by [cdkworkshop.com](https://cdkworkshop.com/),
+[@darkosubotica](https://twitter.com/darkosubotica) talks,
+[cdkday.com](https://www.cdkday.com/) and [awsome-cdk](https://github.com/kolomied/awesome-cdk) repository. I would like to thank all of them which provided a lot
+of resources that allowed me to learn about CDK.
+
 # Let's get started!
 This document is intended to guide you in the process of building your first
 cloud application with CDK so it is divided in a few phases where you will learn
 the basic stuff for the next phase, this is better do no try to hurry up and
 avoid a phase you could regret it in the following ones.
 
+Note: it is important to know that the whole process needs environment variables
+with AWS credentials.
+
 ## Init app && prepare virtualenv
 ```sh
-mkdir cloud-app-cdk
-cd cloud-app-cdk
-cdk init --language python
-source .venv/bin/activate
-pip install -r requirements.txt
+$ mkdir cloud-app-cdk
+$ cd cloud-app-cdk
+$ cdk init --language python       <--- it will init a CDK boilerplate code
+$ source .venv/bin/activate
+$ pip install -r requirements.txt
 ```
 ## CDK app structure
 ```
 README.md
-app.py           <--- entry point
-cdk.json         <--- instructionns for cdk toolkit
-cloud_app_cdk    <--- cloud application code
+app.py            <--- entry point
+cdk.json          <--- instructionns for cdk toolkit
+cloud_app_cdk     <--- cloud application code
 requirements.txt
 setup.py
 source.bat
 ```
 # (Phase 0): Bootstraping your AWS account
-You need some resources that will be used by the CDK toolkitto deploy your app.
+You need some AWS resources that will be used by the CDK toolkit to deploy your
+app.
 ```
 $ cdk bootstrap
 ```
+This will create a new AWS CloudFormation stack in your AWS account. It is only
+necessary to be run one time.
 
 # (Phase 1) Let's deploy something
 At this point you will learn how to deploy something into your AWS account,
@@ -75,7 +87,7 @@ def handler(event, context):
 
 ## New lambda resource
 Now you are ready to create a new resource using the AWS Lambda construct
-library. Just edit the 'cloud_app_cdk/cloud_app_cdk_stack.py' file.
+library. Just edit the '*cloud_app_cdk/cloud_app_cdk_stack.py*' file.
 
 Import the AWS Lambda python module:
 ```python
@@ -105,25 +117,44 @@ You can check you AWS account at CloudFormation service and you will notice
 a new CloudFormation stack is created.
 
 # (Phase 2) API Gateway
-### Install construct
+A typical resource necessary in cloud application is an API, this resource
+usually requires a lot of lines of code when you are coding AWS CloudFormation,
+however let's see how it looks in CDK.
+## Install API Gateway construct library
+Again, you need to install the python package that contains the AWS APIGateway
+construct library. It is always you need to do when using a construct library.
 ```sh
 $ pip install aws-cdk.aws_apigateway
 ```
-### Add API Gateway resource
+## Add API Gateway resource
 ```python
-apigw.LambdaRestApi(
-    self, 'Endpoint',
-    handler=my_lambda,
-)
+from aws_cdk import aws_apigateway as apigw
+..
+..
+        # Hello lambda resource
+        ..
+        ..
+
+        # API Gateway
+        apigw.LambdaRestApi(
+            self, 'Endpoint',
+            handler=hello_lambda,
+        )
 ```
-### Diff
+## Diff
+Before trying to deploy again the changes let's see what is different between
+the local cdk application and the one deployed.
 ```sh
 $ cdk diff cloud-app-cdk
 ```
-### Deploy
+## Deploy
+It looks good and obviously new resources are going to be deployed as shown in
+the '*cdk diff*' before.
 ```sh
 $ cdk deploy cloud-app-cdk
 ```
+![New API gateway resources](./assets/apigw_resources.png)
+As you see it will add twelve new resources.
 
 ## Test
 ```
@@ -134,6 +165,10 @@ $ curl https://jmedoa58w2.execute-api.eu-west-1.amazonaws.com/prod/
 Hello, CDK! You have hit /
 ```
 
+# (Phase 3) Writer & reader Lambda
+# (Phase 4) DynamoDB
+# (Phase 5) Permissions
+# (Phase 6) Test your app
 ## Synth your first CDK application
 ```sh
 cdk synth
