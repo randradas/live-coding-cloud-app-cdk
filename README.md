@@ -22,6 +22,10 @@ It is inspired by
 I would like to thank all of them which provided a lot of resources that
 allowed me to learn the basis about CDK and bring it to my collegues.
 
+# Table of contents
+
+TODO
+
 # Let's get started!
 This document is intended to guide you in the process of building your first
 cloud application with CDK so it is divided in a few sections where you will do
@@ -57,7 +61,7 @@ requirements.txt
 setup.py
 source.bat
 ```
-# (Phase 0): Bootstraping your AWS account
+# Bootstraping your AWS account
 You need some AWS resources that will be used by the CDK toolkit to deploy your
 app.
 ```
@@ -66,7 +70,7 @@ app.
 This will create a new AWS CloudFormation stack in your AWS account. It is only
 necessary to be run one time.
 
-# (Phase 1) Let's deploy something
+# Let's deploy something
 At this point you will learn how to deploy something into your AWS account,
 let's start with a lambda function that will be useful in further phases.
 
@@ -116,32 +120,36 @@ class CloudAppCdkStack(core.Stack):
     def __init__(self, scope: core.Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
-        # Hello lambda resource
+        # Hello lambda
         hello_lambda = _lambda.Function(
             self, 'HelloHandler',
             runtime=_lambda.Runtime.PYTHON_3_8,
             code=_lambda.Code.asset('lambda'),
-            handler='hello.handler'
+            handler='hello.handler',
+            timeout=core.Duration.seconds(30)
         )
 ```
+
 ## Deploy
 Now it's time to deploy your CDK application for the first time.
 ```sh
-~/cloud-app-cdk $ cdk deploy cloud-app-cdk
+~/cloud-app-cdk $ cdk deploy
 ```
 You can check you AWS account at CloudFormation service and you will notice
 a new CloudFormation stack is created.
 
-# (Phase 2) API Gateway
+# API Gateway
 A typical resource necessary in cloud application is an API, this resource
 usually requires a lot of lines of code when you are coding AWS CloudFormation,
 however let's see how it looks in CDK.
+
 ## Install API Gateway construct library
 Again, you need to install the python package that contains the AWS APIGateway
 construct library. It is always you need to do when using a construct library.
 ```sh
 ~/cloud-app-cdk $ pip install aws-cdk.aws_apigateway
 ```
+
 ## Add API Gateway resource
 ```python
 from aws_cdk import aws_apigateway as apigw
@@ -152,17 +160,19 @@ from aws_cdk import aws_apigateway as apigw
         ..
 
         # API Gateway
-        apigw.LambdaRestApi(
+        cloud_app_apigw = apigw.LambdaRestApi(
             self, 'Endpoint',
             handler=hello_lambda,
         )
 ```
+
 ## Diff
 Before trying to deploy again the changes let's see what is different between
 the local cdk application and the one deployed.
 ```sh
 ~/cloud-app-cdk $ cdk diff cloud-app-cdk
 ```
+
 ## Deploy
 It looks good and obviously new resources are going to be deployed as shown in
 the '*cdk diff*' before.
@@ -181,9 +191,9 @@ cloud-app-cdk.Endpoint8024A810 = https://jmedoa58w2.execute-api.eu-west-1.amazon
 Hello, CDK! You have hit /
 ```
 
-# (Phase 3) DynamoDB & Writing lambda
+# DynamoDB & Writing lambda & API Gateway Integration
 ```sh
-~/cloud-app-cdk $ pip install aws-cdk.dynamodb
+~/cloud-app-cdk $ pip install aws-cdk.aws-dynamodb
 ```
 
 ```python
@@ -195,7 +205,7 @@ from aws_cdk import aws_dynamodb as dynamodb
             self,
             'messages',
             partition_key=dynamodb.Attribute(
-                name='message',
+                name='author',
                 type=dynamodb.AttributeType.STRING
             ),
             table_name='messages'
@@ -207,17 +217,122 @@ from aws_cdk import aws_dynamodb as dynamodb
             self, 'MessageHandler',
             runtime=_lambda.Runtime.PYTHON_3_8,
             code=_lambda.Code.asset('lambda'),
-            handler='message.handler'
+            handler='message.handler',
+            timeout=core.Duration.seconds(30)
         )
         cloud_app_apigw_integration = apigw.LambdaIntegration(message_lambda)
         api_message = cloud_app_apigw.root.add_resource("message")
         api_message.add_method("POST", cloud_app_apigw_integration)
 ```
 
-# (Phase 4) Reading lambda
-# (Phase 6) Permissions
-# (Phase 7) Test your app
+Message lambda code:
+```python
+import os
+import json
+import boto3
+
+def handler(event, context):
+    table = os.environ.get('table')
+    dynamodb = boto3.client('dynamodb')
+
+    item = {
+            "author":{'S':event["queryStringParameters"]["author"]},
+            "message":{'S':event["queryStringParameters"]["message"]}
+            }
+
+    
+    response = dynamodb.put_item(TableName=table,
+            Item=item
+            )
+
+    message = 'Status of the write to DynamoDB {}!'.format(response)  
+    return {
+        "statusCode": 200,
+        "body": json.dumps(message)
+    }
+```
+
+Environmnet variables:
+```python
+        # Message lambda
+        message_lambda = _lambda.Function(
+            self, 'MessageHandler',
+            runtime=_lambda.Runtime.PYTHON_3_8,
+            code=_lambda.Code.asset('lambda'),
+            handler='message.handler',
+            timeout=core.Duration.seconds(30),
+            environment={'table': 'messages'}   <----------
+        )
+```
+
+# Reading lambda
+```python
+        # Read lambda
+        read_lambda = _lambda.Function(
+            self, 'ReadHandler',
+            runtime=_lambda.Runtime.PYTHON_3_8,
+            code=_lambda.Code.asset('lambda'),
+            handler='read.handler',
+            timeout=core.Duration.seconds(30),
+            environment={'table': 'messages'}
+        )
+
+        cloud_app_apigw_integration = apigw.LambdaIntegration(read_lambda)
+        api_message = cloud_app_apigw.root.add_resource("read")
+        api_message.add_method("GET", cloud_app_apigw_integration)
+```
+CFN Resources
+```python
+        # L2 resources to add 'description'
+        cfn_read_lambda = read_lambda.node.default_child
+        cfn_read_lambda.description = "Messages reading lambda"
+```
+Read lambda code:
+```python
+import os
+import json
+import boto3
+
+def handler(event, context):
+    table = os.environ.get('table')
+    dynamodb = boto3.client('dynamodb')
+
+    key = {
+            "author":{'S':event["queryStringParameters"]["author"]}
+            }
+
+    response = dynamodb.get_item(TableName=table,
+            Key=key
+            )
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps(response["Item"])
+    }
+```
+# Permissions
+```python
+        # Permissions
+        table.grant_read_data(read_lambda)
+        table.grant_write_data(message_lambda)
+```
+
+# Last but not least deploy
+```sh
+~/cloud-app-cdk $ cdk deploy cloud-app-cdk
+```
+
+# Test your app
+Write a message (remember to use to correct endpoint):
+```sh
+ curl -X POST "https://ns1y3l5xji.execute-api.eu-west-1.amazonaws.com/prod/message?author=rebeca&message=nicetomeetyou"
+```
+Read a message
+```sh
+~/cloud-app-cdk $ curl -X GET "https://ns1y3l5xji.execute-api.eu-west-1.amazonaws.com/prod/read?author=rebeca"
+```
+
 ## Synth your first CDK application
 ```sh
-cdk synth
+~/cloud-app-cdk $ cdk synth
 ```
