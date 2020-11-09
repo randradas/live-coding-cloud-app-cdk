@@ -7,9 +7,8 @@ def handler(event, context):
     dynamodb = boto3.client('dynamodb')
 
     item = {
-            "name":{'S':event["queryStringParameters"]["name"]},
-            "location":{'S':event["queryStringParameters"]["location"]},
-            "age":{'S':event["queryStringParameters"]["age"]}
+            "author":{'S':event["queryStringParameters"]["author"]},
+            "message":{'S':event["queryStringParameters"]["message"]}
             }
 
     
