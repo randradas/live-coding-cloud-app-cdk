@@ -56,6 +56,8 @@ class CloudAppCdkStack(core.Stack):
             timeout=core.Duration.seconds(30),
             environment={'table': 'messages'}
         )
+
+        # L2 resources to add 'description'
         cfn_read_lambda = read_lambda.node.default_child
         cfn_read_lambda.description = "Messages reading lambda"
 
