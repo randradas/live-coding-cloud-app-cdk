@@ -147,7 +147,7 @@ however let's see how it looks in CDK.
 Again, you need to install the python package that contains the AWS APIGateway
 construct library. It is always you need to do when using a construct library.
 ```sh
-~/cloud-app-cdk $ pip install aws-cdk.aws_apigateway
+~/cloud-app-cdk $ pip install aws-cdk.aws-apigateway
 ```
 
 ## Add API Gateway resource
@@ -170,7 +170,7 @@ from aws_cdk import aws_apigateway as apigw
 Before trying to deploy again the changes let's see what is different between
 the local cdk application and the one deployed.
 ```sh
-~/cloud-app-cdk $ cdk diff cloud-app-cdk
+~/cloud-app-cdk $ cdk diff
 ```
 
 ## Deploy
@@ -225,7 +225,7 @@ from aws_cdk import aws_dynamodb as dynamodb
         api_message.add_method("POST", cloud_app_apigw_integration)
 ```
 
-Message lambda code:
+Message lambda code (message.py):
 ```python
 import os
 import json
@@ -283,11 +283,11 @@ Environmnet variables:
 ```
 CFN Resources
 ```python
-        # L2 resources to add 'description'
+        # L1 resources to add 'description'
         cfn_read_lambda = read_lambda.node.default_child
         cfn_read_lambda.description = "Messages reading lambda"
 ```
-Read lambda code:
+Read lambda code (read.py):
 ```python
 import os
 import json
@@ -325,11 +325,11 @@ def handler(event, context):
 # Test your app
 Write a message (remember to use to correct endpoint):
 ```sh
- curl -X POST "https://ns1y3l5xji.execute-api.eu-west-1.amazonaws.com/prod/message?author=rebeca&message=nicetomeetyou"
+ curl -X POST "https://ns1y3l5xji.execute-api.eu-west-1.amazonaws.com/prod/message?author=johndoe&message=helloworld"
 ```
 Read a message
 ```sh
-~/cloud-app-cdk $ curl -X GET "https://ns1y3l5xji.execute-api.eu-west-1.amazonaws.com/prod/read?author=rebeca"
+~/cloud-app-cdk $ curl -X GET "https://ns1y3l5xji.execute-api.eu-west-1.amazonaws.com/prod/read?author=johndoe"
 ```
 
 ## Synth your first CDK application
