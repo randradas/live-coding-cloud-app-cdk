@@ -1,98 +1,131 @@
 # What is this repo?
 
-This repo is the code base used for the talk '*Live Coding Cloud Apps with CDK (infrastructure as code)*'.
+This repo is the code base used for the talk '*Live Coding Cloud Apps with CDK
+(infrastructure as code)*'.
 
 Following this README.md will guide you to create your first cloud application
-using AWS CDK. CDK is a set of assets that will help you to write infrastructure
-as code using your favorite language (Typescript, Python, Javascrip, Go and
-others), for more information about CDK take a look at
+using [AWS CDK](https://github.com/aws/aws-cdk). CDK is a development framework
+that will help you to write infrastructure as code using your favorite language
+(Typescript, Python, Javascript, Java, C# and others), for more information
+about CDK take a look at
 [this](https://docs.aws.amazon.com/cdk/latest/guide/home.html).
 
 The result of this live coding session can be find at the '*/cloud-app-cdk/*'
 directory. **This is not production ready code** and probably not the best
 styled code but it works when it comes to understand how to develop with CDK.
 
-# Thank you to...
+# Thanks
 It is inspired by
 [cdkworkshop.com](https://cdkworkshop.com/),
-[@darkosubotica](https://twitter.com/darkosubotica) talks,
+[@darkosubotica](https://twitter.com/darkosubotica)
+[talks](https://www.youtube.com/channel/UCV_UAKu9-r39cEEXPj_xWfw),
 [cdkday.com](https://www.cdkday.com/),
 [awsome-cdk](https://github.com/kolomied/awesome-cdk) repository and
 [cdk.dev](https://cdk.dev).
 I would like to thank all of them which provided a lot of resources that
 allowed me to learn the basis about CDK and bring it to my collegues.
 
-# Table of contents
-
-TODO
-
 # Let's get started!
 This document is intended to guide you in the process of building your first
-cloud application with CDK so it is divided in a few sections where you will do
-something neecessary for the next section, this is better do no try to hurry up
-and avoid a section since you could regret it in the following ones.
+cloud application with CDK using Python so it is divided in a few sections
+where you will do something neecessary for the next section, this is better do
+not try to hurry up and avoid a section since you could regret it in the
+following ones.
 
 Note: it is important to know that you need a AWS account with environment
-variables set with AWS credentials.
+variables set with AWS credentials. Check it out
+[awsume](https://github.com/trek10inc/awsume).
 
-## Install CDK
+## Install CDK toolkit
 ### MacOS
 Pre-requisites: [brew](https://brew.sh/)
 ```sh
 ~ $ brew install node
 ~ $ npm i -g aws-cdk
+~ $ cdk --version
+```
+### Linux (Ubuntu 18.04 and 16.04)
+```sh
+~ $ sudo apt install nodejs
+~ $ npm install -g aws-cdk
+~ $ cdk --version
 ```
 
 ## Init app && prepare virtualenv
+Tipically CDK applications are developed in a local directory:
 ```sh
 ~ $ mkdir cloud-app-cdk
 ~ $ cd cloud-app-cdk
-~/cloud-app-cdk $ cdk init --language python       <--- it will init a CDK boilerplate code
+```
+CDK toolkit helps you to initialize the app directory creating code base for
+you where you can start coding immediately.
+```sh
+~/cloud-app-cdk $ cdk init --language python
+..
+.
+Executing Creating virtualenv...
+```
+As you probably observed CDK toolkit created a virtualenv for you so let's
+activate it. It is something you should do everytime you develop you
+application.
+```sh
 ~/cloud-app-cdk $ source .venv/bin/activate
-~/cloud-app-cdk $ pip install -r requirements.txt
+```
+Before starting the actual CDK workflow it is necessary to install some core
+modules:
+```sh
+(.venv) ~/cloud-app-cdk $ pip install -r requirements.txt
 ```
 ## CDK app structure
+Well, first of all let's check what the CDK toolkit created for you.
 ```
 README.md
-app.py            <--- entry point
-cdk.json          <--- instructionns for cdk toolkit
-cloud_app_cdk     <--- cloud application code
+app.py                                <--- CDK toolkit entry point
+cdk.json                              <--- CDK toolkit configuration stuff
+cloud_app_cdk/                        <--- cloud application code
 requirements.txt
 setup.py
 source.bat
 ```
+Your application's stack will be created in a very special file called
+'*cloud_app_cdk/cloud_app_cdk_stack.py*'. More complex applications could be
+composed by more than one stack but in this case just one stack is needed.
+
 # Bootstraping your AWS account
-You need some AWS resources that will be used by the CDK toolkit to deploy your
-app.
-```
-~/cloud-app-cdk $ cdk bootstrap
+CDK toolkit needs some AWS resources that will be used to deploy your
+application.
+```sh
+(.venv) ~/cloud-app-cdk $ cdk bootstrap
 ```
 This will create a new AWS CloudFormation stack in your AWS account. It is only
-necessary to be run one time.
+necessary to be run one time. Mainly this is a bucket to store artifacts.
 
 # Let's deploy something
 At this point you will learn how to deploy something into your AWS account,
 let's start with a lambda function that will be useful in further phases.
 
-In order to be able to do it you need to install the AWS Lambda construct
-library which will allow you to use the lambda construct in your CDK code.
-## Lambda construct library
-In order to use lambda you need to install the lambda construct library which
-will provide AWS Lambda resources.
+## AWS Lambda construct library
+In order to be able to do it you need to install the Python module that will
+make the AWS Lambda construct library available which will allow you to use the
+AWS Lambda constructs in your CDK code.
+
 ```sh
-$ pip install aws-cdk.aws-lambda
+(.venv) ~/cloud-app-cdk $ pip install aws-cdk.aws-lambda
 ```
 
-Just put your lambda code as follow in the CDK app root directory.
+Lambda code needs to be located in the CDK application root directory as follow:
 ```sh
-~/cloud-app-cdk $ mkdir lambda
-~/cloud-app-cdk $ vim lambda/hello.py
+(.venv) ~/cloud-app-cdk $ mkdir lambda
 ```
 
-For learning purposes it is enough with a 'Hello World!' lambda like this:
+## Hello World lambda
+### Code
+Edit the following file where the lambda's code will be written:
+```sh
+(.venv) ~/cloud-app-cdk $ vim lambda/hello.py
+```
 ```python
 import json
-
 
 def handler(event, context):
     print('request: {}'.format(json.dumps(event)))
@@ -105,7 +138,7 @@ def handler(event, context):
     }
 ```
 
-## New lambda resource
+### AWS resource
 Now you are ready to create a new resource using the AWS Lambda construct
 library. Just edit the '*cloud_app_cdk/cloud_app_cdk_stack.py*' file.
 
@@ -130,10 +163,10 @@ class CloudAppCdkStack(core.Stack):
         )
 ```
 
-## Deploy
+### Deploy
 Now it's time to deploy your CDK application for the first time.
 ```sh
-~/cloud-app-cdk $ cdk deploy
+(.venv) ~/cloud-app-cdk $ cdk deploy
 ```
 You can check you AWS account at CloudFormation service and you will notice
 a new CloudFormation stack is created.
@@ -147,7 +180,7 @@ however let's see how it looks in CDK.
 Again, you need to install the python package that contains the AWS APIGateway
 construct library. It is always you need to do when using a construct library.
 ```sh
-~/cloud-app-cdk $ pip install aws-cdk.aws-apigateway
+(.venv) ~/cloud-app-cdk $ pip install aws-cdk.aws-apigateway
 ```
 
 ## Add API Gateway resource
@@ -170,14 +203,14 @@ from aws_cdk import aws_apigateway as apigw
 Before trying to deploy again the changes let's see what is different between
 the local cdk application and the one deployed.
 ```sh
-~/cloud-app-cdk $ cdk diff
+(.venv) ~/cloud-app-cdk $ cdk diff
 ```
 
 ## Deploy
 It looks good and obviously new resources are going to be deployed as shown in
 the '*cdk diff*' before.
 ```sh
-~/cloud-app-cdk $ cdk deploy cloud-app-cdk
+(.venv) ~/cloud-app-cdk $ cdk deploy cloud-app-cdk
 ```
 ![New API gateway resources](./assets/apigw_resources.png)
 As you see it will add twelve new resources.
@@ -187,13 +220,13 @@ As you see it will add twelve new resources.
 Outputs:
 cloud-app-cdk.Endpoint8024A810 = https://jmedoa58w2.execute-api.eu-west-1.amazonaws.com/pro
 
-~/cloud-app-cdk $ curl https://jmedoa58w2.execute-api.eu-west-1.amazonaws.com/prod/
+(.venv) ~/cloud-app-cdk $ curl https://jmedoa58w2.execute-api.eu-west-1.amazonaws.com/prod/
 Hello, CDK! You have hit /
 ```
 
 # DynamoDB & Writing lambda & API Gateway Integration
 ```sh
-~/cloud-app-cdk $ pip install aws-cdk.aws-dynamodb
+(.venv) ~/cloud-app-cdk $ pip install aws-cdk.aws-dynamodb
 ```
 
 ```python
@@ -319,20 +352,28 @@ def handler(event, context):
 
 # Last but not least deploy
 ```sh
-~/cloud-app-cdk $ cdk deploy cloud-app-cdk
+(.venv) ~/cloud-app-cdk $ cdk deploy cloud-app-cdk
 ```
 
 # Test your app
 Write a message (remember to use to correct endpoint):
 ```sh
- curl -X POST "https://ns1y3l5xji.execute-api.eu-west-1.amazonaws.com/prod/message?author=johndoe&message=helloworld"
+(.venv) ~/cloud-app-cdk $ curl -X POST "https://ns1y3l5xji.execute-api.eu-west-1.amazonaws.com/prod/message?author=johndoe&message=helloworld"
 ```
 Read a message
 ```sh
-~/cloud-app-cdk $ curl -X GET "https://ns1y3l5xji.execute-api.eu-west-1.amazonaws.com/prod/read?author=johndoe"
+(.venv) ~/cloud-app-cdk $ curl -X GET "https://ns1y3l5xji.execute-api.eu-west-1.amazonaws.com/prod/read?author=johndoe"
 ```
 
-## Synth your first CDK application
+# Synth your first CDK application
 ```sh
 ~/cloud-app-cdk $ cdk synth
+```
+
+# Clean your room
+```sh
+(.venv) ~/cloud-app-cdk $ cdk destroy
+(.venv) ~/cloud-app-cdk $ deactivate
+~/cloud-app-cdk $ cd ..
+~/ $ rm -rf cloud-app-cdk
 ```
